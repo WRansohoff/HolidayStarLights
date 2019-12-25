@@ -10,20 +10,48 @@
 #define WS2812_ON  ( 0xFC )
 #define WS2812_OFF ( 0xC0 )
 
+// Enumeration for lighting patterns.
+typedef enum {
+  min = 0,
+  breathe_r = 0,
+  breathe_g,
+  breathe_b,
+  max 
+} light_steps;
+
 // Number of LEDs per star.
-#define STAR_LEDS ( 4 )
+#define STAR_LEDS ( 48 )
 // Number of stars in the string.
 #define NUM_STARS ( 1 )
+// Duration of each lighting 'step', in ms.
+#define STEP_DUR  ( 5000 )
+// Number of 'substeps' or 'cycles' in each lighting 'step'
+#define STEP_CYC  ( 5 )
+
 // LED colors buffer. (GRB*8)
 // This is sort of a waste of RAM, but it makes DMA easier.
 // You could use less memory by setting a faster SPI speed and
 // stuffing more than one color bit into each byte, but this is easy.
-uint8_t colors[ NUM_STARS * STAR_LEDS * 24 ];
+#define NUM_COLOR_BYTES ( NUM_STARS * STAR_LEDS * 3 )
+#define NUM_COLOR_BITS  ( NUM_COLOR_BYTES * 8 )
+// (Add 20 cycles to hold a latching sequence)
+#define COLOR_ARRAY_LEN ( NUM_COLOR_BITS + 64 )
+uint8_t colors[ COLOR_ARRAY_LEN ];
+// And this is even more of a waste of RAM, but storing the brightest
+// 'target' color will help calculate 'breathing' dimming sequences
+// over time, multiplying the 'target color' by a duration factor.
+uint8_t target_colors[ NUM_COLOR_BYTES ];
 
 // Pre-defined memory locations for program initialization.
 extern uint32_t _sidata, _sdata, _edata, _sbss, _ebss;
 
+// Core system clock speed, in Hertz.
 uint32_t core_clock_hz;
+// 'tick' variable which is incremented every ms by the SysTick.
 volatile uint32_t systick;
+// Systime to advance to the next 'substep' or 'cycle'.
+uint32_t next_cyc;
+// Systime to advance to the next lighting pattern.
+uint32_t next_pat;
 
 #endif
