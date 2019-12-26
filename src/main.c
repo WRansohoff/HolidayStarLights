@@ -31,12 +31,6 @@ void delay_ms( uint32_t ms ) {
   while ( systick < next ) { __asm__( "WFI" ); }
 }
 
-void set_target_rgb( uint8_t* px, uint8_t r, uint8_t g, uint8_t b ) {
-  px[ 0 ] = r;
-  px[ 1 ] = g;
-  px[ 2 ] = b;
-}
-
 // Set a 24-byte GRB pixel color from 3 RGB bytes.
 void set_px_rgb( uint8_t* px, uint8_t r, uint8_t g, uint8_t b ) {
   // Green color.
@@ -56,21 +50,52 @@ void set_px_rgb( uint8_t* px, uint8_t r, uint8_t g, uint8_t b ) {
   }
 }
 
-// Increment the lighting patterns.
-void step_lights() {
+// Step one star's lighting pattern.
+void step_star( star_t* star ) {
+  // Use the same definition of 'now' for the whole function.
+  int this_tick = systick;
+  // Move to the next pattern if necessary.
+  if ( star->next_step < this_tick ) {
+    star->last_step = this_tick;
+    star->next_step = this_tick + STEP_DUR;
+    if ( star->cur_pattern == breathe_r ) { star->cur_pattern = breathe_g; }
+    else if ( star->cur_pattern == breathe_g ) { star->cur_pattern = breathe_b; }
+    else if ( star->cur_pattern == breathe_b ) { star->cur_pattern = breathe_r; }
+  }
+
+  // Update colors to match the current pattern.
+  // The downside of using an ancient STM32F1 chip is that it
+  // lacks floating-point hardware, so integer math is much faster.
+  uint8_t step_brightness = ( ( this_tick - star->last_step ) * 0xFF ) / ( STEP_DUR / 2 );
+  if ( ( this_tick - star->last_step ) > ( STEP_DUR / 2 ) ) {
+    step_brightness = 0xFF - ( step_brightness - 0xFF );
+  }
+  if ( star->cur_pattern == breathe_r ) {
+    for ( int i = 0; i < STAR_LEDS; ++i )  {
+      set_px_rgb( &( star->my_colors[ i * 24 ] ), step_brightness, 0x00, 0x00 );
+    }
+  }
+  else if ( star->cur_pattern == breathe_g ) {
+    for ( int i = 0; i < STAR_LEDS; ++i )  {
+      set_px_rgb( &( star->my_colors[ i * 24 ] ), 0x00, step_brightness, 0x00 );
+    }
+  }
+  else if ( star->cur_pattern == breathe_b ) {
+    for ( int i = 0; i < STAR_LEDS; ++i )  {
+      set_px_rgb( &( star->my_colors[ i * 24 ] ), 0x00, 0x00, step_brightness );
+    }
+  }
+  else {
+    for ( int i = 0; i < STAR_LEDS; ++i )  {
+      set_px_rgb( &( star->my_colors[ i * 24 ] ), 0x00, 0x00, 0x00 );
+    }
+  }
 }
 
-// Send colors to the LED strip. TODO: Use DMA.
-void send_colors() {
-  // Send colors one by one.
-  for ( int i = 0; i < ( NUM_COLOR_BITS ); ++i ) {
-    while ( !( SPI1->SR & SPI_SR_TXE ) ) {};
-    *( uint8_t* )&( SPI1->DR ) = colors[ i ];
-  }
-  // Latch.
-  for ( int i = 0; i < 20; ++i ) {
-    while ( !( SPI1->SR & SPI_SR_TXE ) ) {};
-     *( uint8_t* )&( SPI1->DR ) = 0x00;
+// Increment the lighting patterns.
+void step_lights() {
+  for ( int i = 0; i < NUM_STARS; ++i ) {
+    step_star( &( stars[ i ] ) );
   }
 }
 
@@ -124,30 +149,20 @@ int main(void) {
   for ( int i = 0; i < ( NUM_STARS * STAR_LEDS ); ++i ) {
     set_px_rgb( &( colors[ i * 24 ] ), 0x00, 0x00, 0x00 );
   }
-  /*
-  // Set target colors.
-  set_target_rgb( &( target_colors[ 0 ] ), 0x10, 0x10, 0x10 );
-  set_target_rgb( &( target_colors[ 24 ] ), 0x40, 0x00, 0x00 );
-  set_target_rgb( &( target_colors[ 48 ] ), 0x00, 0x40, 0x00 );
-  set_target_rgb( &( target_colors[ 72 ] ), 0x40, 0x00, 0x40 );
-  set_target_rgb( &( target_colors[ 96 ] ), 0x40, 0x40, 0x00 );
-  set_target_rgb( &( target_colors[ 120 ] ), 0x00, 0x40, 0x40 );
-  */
-  for ( int i = 0; i < STAR_LEDS / 6; ++i ) {
-    set_px_rgb( &( colors[ i * 144 ] ), 0x10, 0x10, 0x10 );
-    set_px_rgb( &( colors[ i * 144 + 24 ] ), 0x10, 0x00, 0x00 );
-    set_px_rgb( &( colors[ i * 144 + 48 ] ), 0x00, 0x10, 0x00 );
-    set_px_rgb( &( colors[ i * 144 + 72 ] ), 0x10, 0x00, 0x10 );
-    set_px_rgb( &( colors[ i * 144 + 96 ] ), 0x10, 0x10, 0x00 );
-    set_px_rgb( &( colors[ i * 144 + 120 ] ), 0x00, 0x10, 0x10 );
-    /*
-    set_px_rgb( &( colors[ i * 144 ] ), 0xFF, 0xFF, 0xFF );
-    set_px_rgb( &( colors[ i * 144 + 24 ] ), 0xFF, 0x00, 0x00 );
-    set_px_rgb( &( colors[ i * 144 + 48 ] ), 0x00, 0xFF, 0x00 );
-    set_px_rgb( &( colors[ i * 144 + 72 ] ), 0xFF, 0x00, 0xFF );
-    set_px_rgb( &( colors[ i * 144 + 96 ] ), 0xFF, 0xFF, 0x00 );
-    set_px_rgb( &( colors[ i * 144 + 120 ] ), 0x00, 0xFF, 0xFF );
-    */
+  // Initialize the star structs.
+  for ( int i = 0; i < NUM_STARS; ++i ) {
+    stars[ i ].my_colors = &( colors[ i * STAR_LEDS * 24 ] );
+    stars[ i ].last_step = 0;
+    stars[ i ].next_step = STEP_DUR;
+    if ( i % 3 == 0 ) {
+      stars[ i ].cur_pattern = breathe_r;
+    }
+    else if ( i % 3 == 1 ) {
+      stars[ i ].cur_pattern = breathe_g;
+    }
+    else if ( i % 3 == 2 ) {
+      stars[ i ].cur_pattern = breathe_b;
+    }
   }
 
   // Enable peripheral clocks: AFIO, GPIOB, DMA1, SPI1.
@@ -203,11 +218,9 @@ int main(void) {
   // Send new colors and blink the on-board LED every second.
   while ( 1 ) {
     // Wait a sec...
-    delay_ms( 1000 );
+    delay_ms( 50 );
     // Step the lighting display.
     step_lights();
-    // TODO: DMA instead of polling.
-    //send_colors();
     // Toggle on-board LED.
     GPIOB->ODR ^=  ( 1 << 12 );
   }
