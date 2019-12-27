@@ -28,9 +28,5 @@ extern uint32_t _sidata, _sdata, _edata, _sbss, _ebss;
 uint32_t core_clock_hz;
 // 'tick' variable which is incremented every ms by the SysTick.
 volatile uint32_t systick;
-// Systime to advance to the next 'substep' or 'cycle'.
-uint32_t next_cyc;
-// Systime to advance to the next lighting pattern.
-uint32_t next_pat;
 
 #endif
