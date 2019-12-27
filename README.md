@@ -6,7 +6,7 @@ In a nutshell, the application drives a string of `WS2812B` 'NeoPixel' LEDs from
 
 Nothing special there, but the application expects the LEDs to be split into groups and sandwiched between acrylic shapes, with those shapes connecting to one another in a string. So it generates cycling patterns of lighting effects, given the number of stars and the number of LEDs in each star.
 
-[ TODO: Add a picture ]
+![GIF](stars.gif)
 
 'Tis the season! :)
 
