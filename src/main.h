@@ -15,17 +15,20 @@
 // Number of stars in the string.
 #define NUM_STARS ( 7 )
 // Duration of each lighting 'step', in ms.
-#define STEP_DUR  ( 2000 )
+#define STEP_DUR  ( 5000 )
 // Number of 'substeps' or 'cycles' in each lighting 'step'
 #define STEP_CYC  ( 5 )
 
 // Enumeration for lighting patterns.
 typedef enum {
-  min = 0,
-  breathe_r = 0,
+  ls_min = 0,
+  rainbow = 0,
+  ls_max, /* (Move pattern names below this line to disable them.) */
+  xmas_odd,
+  xmas_even,
+  breathe_r,
   breathe_g,
   breathe_b,
-  max 
 } light_steps;
 
 // Star struct.
