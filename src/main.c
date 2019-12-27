@@ -153,9 +153,9 @@ int main(void) {
                    SPI_CR1_SPE |
                    0x2 << SPI_CR1_BR_Pos );
 
-  // Send new colors and blink the on-board LED every second.
+  // Send new colors and blink the on-board LED at an interval.
   while ( 1 ) {
-    // Wait a sec...
+    // Delay briefly
     delay_ms( 50 );
     // Step the lighting display.
     for ( int i = 0; i < NUM_STARS; ++i ) {
