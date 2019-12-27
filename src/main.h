@@ -6,39 +6,7 @@
 
 #include "stm32f1xx.h"
 
-// SPI timing values for color bits. (One SPI byte = one color bit)
-#define WS2812_ON  ( 0xFC )
-#define WS2812_OFF ( 0xC0 )
-
-// Number of LEDs per star.
-#define STAR_LEDS ( 23 )
-// Number of stars in the string.
-#define NUM_STARS ( 7 )
-// Duration of each lighting 'step', in ms.
-#define STEP_DUR  ( 2000 )
-// Number of 'substeps' or 'cycles' in each lighting 'step'
-#define STEP_CYC  ( 5 )
-
-// Enumeration for lighting patterns.
-typedef enum {
-  ls_min = 0,
-  rainbow_lp = 0,
-  ls_max, /* (Move pattern names below this line to disable them.) */
-  rainbow,
-  xmas_odd,
-  xmas_even,
-  breathe_r,
-  breathe_g,
-  breathe_b,
-} light_steps;
-
-// Star struct.
-typedef struct {
-  uint8_t* my_colors;
-  int cur_pattern;
-  int last_step;
-  int next_step;
-} star_t;
+#include "patterns.h"
 
 // Array of star structs.
 star_t stars[ NUM_STARS ];

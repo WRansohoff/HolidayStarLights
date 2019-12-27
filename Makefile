@@ -86,6 +86,7 @@ LFLAGS += -T$(LSCRIPT)
 
 AS_SRC   =  ./$(ST_MCU_DEF)_vt.S
 C_SRC    =  ./src/main.c
+C_SRC    += ./src/patterns.c
 
 INCLUDE  =  -I./
 INCLUDE  += -I./device_headers
