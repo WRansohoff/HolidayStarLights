@@ -6,15 +6,6 @@ uint32_t core_clock_hz = 8000000;
 // SysTick counter definition.
 volatile uint32_t systick = 0;
 
-// Reset handler: set the stack pointer and branch to main().
-__attribute__( ( naked ) ) void reset_handler( void ) {
-  // Set the stack pointer to the 'end of stack' value.
-  __asm__( "LDR r0, =_estack\n\t"
-           "MOV sp, r0" );
-  // Branch to main().
-  __asm__( "B main" );
-}
-
 // Delay for a specified number of milliseconds.
 // TODO: Prevent rollover bug on the 'systick' value.
 void delay_ms( uint32_t ms ) {
@@ -23,7 +14,13 @@ void delay_ms( uint32_t ms ) {
 
   // Wait until the system reaches that tick value.
   // Use the 'wait for interrupt' instruction to save power.
-  while ( systick < next ) { __asm__( "WFI" ); }
+  while ( systick < next ) {
+    #ifdef VVC_STM32
+      __asm__( "WFI" );
+    #elif VVC_GD32V
+      __WFI();
+    #endif
+  }
 }
 
 /**
@@ -67,8 +64,30 @@ int main(void) {
   // The system clock is now 48MHz.
   core_clock_hz = 48000000;
 
-  // Setup the SysTick peripheral to 1ms ticks.
-  SysTick_Config( core_clock_hz / 1000 );
+  #ifdef VVC_STM32
+    // Setup the SysTick peripheral to 1ms ticks.
+    SysTick_Config( core_clock_hz / 1000 );
+  #elif  VVC_GD32V
+    // Set up the global timer to generate an interrupt every ms.
+    // Figure out how many interrupts are available.
+    uint32_t max_irqn = *( volatile uint32_t * )( ECLIC_ADDR_BASE + ECLIC_INFO_OFFSET );
+    max_irqn &= ( 0x00001FFF );
+    // Initialize the 'ECLIC' interrupt controller.
+    eclic_init( max_irqn );
+    eclic_mode_enable();
+    // Set 'vector mode' so the timer interrupt uses the vector table.
+    eclic_set_vmode( CLIC_INT_TMR );
+    // Enable the timer interrupt (#7) with low priority and 'level'.
+    eclic_enable_interrupt( CLIC_INT_TMR );
+    eclic_set_irq_lvl_abs( CLIC_INT_TMR, 1 );
+    eclic_set_irq_priority( CLIC_INT_TMR, 1 );
+    // Set the timer's comparison value to (frequency / 1000).
+    *( volatile uint64_t * )( TIMER_CTRL_ADDR + TIMER_MTIMECMP ) = ( TIMER_FREQ / 1000 );
+    // Reset the timer value to zero.
+    *( volatile uint64_t * )( TIMER_CTRL_ADDR + TIMER_MTIME ) = 0;
+    // Re-enable interrupts globally.
+    set_csr( mstatus, MSTATUS_MIE );
+  #endif
 
   // Zero out the colors array, to ensure latching period is all low.
   memset( &colors, 0x00, COLOR_ARRAY_LEN );
@@ -106,6 +125,7 @@ int main(void) {
   // Enable peripheral clocks: AFIO, GPIOB, DMA1, SPI1.
   RCC->APB2ENR  |=  ( RCC_APB2ENR_AFIOEN |
                       RCC_APB2ENR_IOPBEN |
+                      RCC_APB2ENR_IOPCEN |
                       RCC_APB2ENR_SPI1EN );
   RCC->AHBENR   |=  ( RCC_AHBENR_DMA1EN );
 
@@ -155,7 +175,7 @@ int main(void) {
 
   // Send new colors and blink the on-board LED at an interval.
   while ( 1 ) {
-    // Delay briefly
+    // Delay briefly.
     delay_ms( 50 );
     // Step the lighting display.
     for ( int i = 0; i < NUM_STARS; ++i ) {
@@ -168,7 +188,18 @@ int main(void) {
   return 0; // lol
 }
 
-// SysTick interrupt handler: increment the global 'systick' value.
-void SysTick_IRQn_handler( void ) {
-  ++systick;
-}
+#ifdef VVC_STM32
+  // SysTick interrupt handler: increment the global 'systick' value.
+  void SysTick_IRQn_handler( void ) {
+    ++systick;
+  }
+#elif VVC_GD32V
+  // System timer interrupt.
+  __attribute__( ( interrupt ) )
+  void eclic_mtip_handler( void ) {
+    // Increment the global 'tick' value.
+    systick++;
+    // Reset the 'mtime' value to zero.
+    *( volatile uint64_t * )( TIMER_CTRL_ADDR + TIMER_MTIME ) = 0;
+  }
+#endif

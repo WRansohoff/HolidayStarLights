@@ -1,9 +1,9 @@
 TARGET = main
 
 # Default target chip.
-MCU ?= STM32F103x8
+#MCU ?= STM32F103x8
 #MCU ?= STM32F103xB
-#MCU ?= GD32VF103xB
+MCU ?= GD32VF103xB
 
 # Define target chip information.
 ifeq ($(MCU), STM32F103x8)
@@ -98,7 +98,7 @@ OBJS += $(C_SRC:.c=.o)
 all: $(TARGET).bin
 
 %.o: %.S
-	$(CC) -x assembler-with-cpp $(ASFLAGS) $< -o $@
+	$(CC) -x assembler-with-cpp $(ASFLAGS) $(INCLUDE) $< -o $@
 
 %.o: %.c
 	$(CC) -c $(CFLAGS) $(INCLUDE) $< -o $@

@@ -4,16 +4,22 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "stm32f1xx.h"
+#ifdef VVC_STM32
+  #include "stm32f1xx.h"
+#elif  VVC_GD32V
+  #include "gd32vf103.h"
+  #include "n200_func.h"
+  #include "riscv_encoding.h"
+#endif
 
 // SPI timing values for color bits. (One SPI byte = one color bit)
 #define WS2812_ON  ( 0xFC )
 #define WS2812_OFF ( 0xC0 )
 
 // Number of LEDs per star.
-#define STAR_LEDS ( 23 )
+#define STAR_LEDS ( 24 )
 // Number of stars in the string.
-#define NUM_STARS ( 7 )
+#define NUM_STARS ( 8 )
 // Duration of each lighting 'step', in ms.
 #define STEP_DUR  ( 2000 )
 // Number of 'substeps' or 'cycles' in each lighting 'step'

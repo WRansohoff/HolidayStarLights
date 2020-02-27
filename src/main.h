@@ -5,8 +5,14 @@
 #include <stdint.h>
 #include <string.h>
 
-// Device header file for the MCU.
-#include "stm32f1xx.h"
+// Device header files.
+#ifdef VVC_STM32
+  #include "stm32f1xx.h"
+#elif  VVC_GD32V
+  #include "gd32vf103.h"
+  #include "n200_func.h"
+  #include "riscv_encoding.h"
+#endif
 
 // Project includes.
 #include "patterns.h"
