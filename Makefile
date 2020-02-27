@@ -84,6 +84,9 @@ LFLAGS += -T$(LSCRIPT)
 AS_SRC   =  ./src/$(MCU_FILES).S
 C_SRC    =  ./src/main.c
 C_SRC    += ./src/patterns.c
+ifeq ($(MCU_TYPE), GD32V)
+	C_SRC += ./device_headers/n200_func.c
+endif
 
 INCLUDE  =  -I./
 INCLUDE  += -I./device_headers
