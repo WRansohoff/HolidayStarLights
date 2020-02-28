@@ -1,7 +1,7 @@
 #include "main.h"
 
 // Default core system clock frequency.
-uint32_t core_clock_hz = 8000000;
+volatile uint32_t SystemCoreClock = 8000000;
 
 // SysTick counter definition.
 volatile uint32_t systick = 0;
@@ -42,7 +42,7 @@ int main(void) {
    */
   // Set 1 wait state in flash and enable the prefetch buffer.
   FLASH->ACR &= ~(FLASH_ACR_LATENCY);
-  FLASH->ACR |=  (FLASH_ACR_LATENCY_1 |
+  FLASH->ACR |=  (0x1 << FLASH_ACR_LATENCY_Pos |
                   FLASH_ACR_PRFTBE);
   // Enable the 8MHz external crystal oscillator.
   RCC->CR    |=  (RCC_CR_HSEON);
@@ -62,11 +62,11 @@ int main(void) {
   RCC->CFGR  &= ~(RCC_CFGR_SW);
   RCC->CFGR  |=  (RCC_CFGR_SW_PLL);
   // The system clock is now 48MHz.
-  core_clock_hz = 48000000;
+  SystemCoreClock = 48000000;
 
   #ifdef VVC_STM32
     // Setup the SysTick peripheral to 1ms ticks.
-    SysTick_Config( core_clock_hz / 1000 );
+    SysTick_Config( SystemCoreClock / 1000 );
   #elif  VVC_GD32V
     // Set up the global timer to generate an interrupt every ms.
     // Figure out how many interrupts are available.
@@ -122,8 +122,9 @@ int main(void) {
     */
   }
 
-  // Enable peripheral clocks: AFIO, GPIOB, DMA1, SPI1.
+  // Enable peripheral clocks: AFIO, GPIOA/B/C, DMA1, SPI1.
   RCC->APB2ENR  |=  ( RCC_APB2ENR_AFIOEN |
+                      RCC_APB2ENR_IOPAEN |
                       RCC_APB2ENR_IOPBEN |
                       RCC_APB2ENR_IOPCEN |
                       RCC_APB2ENR_SPI1EN );
@@ -133,9 +134,16 @@ int main(void) {
   GPIOB->CRL &= ~( 0xF << 20 );
   GPIOB->CRL |=  ( 0x9 << 20 );
   AFIO->MAPR |=  ( AFIO_MAPR_SPI1_REMAP );
-  // PB12 LED pin setup: output, push-pull, low-speed.
-  GPIOB->CRH &= ~( 0xF << 16 );
-  GPIOB->CRH |=  ( 0x2 << 16 );
+  // LED pin(s) setup: output, push-pull, low-speed.
+  #ifdef VVC_STM32
+    GPIOB->CRH &= ~( 0xF << 16 );
+    GPIOB->CRH |=  ( 0x2 << 16 );
+  #elif  VVC_GD32V
+    GPIOA->CRL &= ~( ( 0xF << 4 ) | ( 0xF << 8 ) );
+    GPIOA->CRL |=  ( ( 0x2 << 4 ) | ( 0x2 << 8 ) );
+    GPIOA->ODR &= ~( 0x1 << 1 );
+    GPIOA->ODR |=  ( 0x1 << 2 );
+  #endif
 
   // DMA setup: on STM32F103s, SPI1_TX is mapped to DMA1, Channel 3.
   // - Memory-to-peripheral mode.
@@ -182,7 +190,11 @@ int main(void) {
       step_star( &( stars[ i ] ) );
     }
     // Toggle on-board LED.
-    GPIOB->ODR ^=  ( 1 << 12 );
+    #ifdef VVC_STM32
+      GPIOB->ODR ^=  ( 1 << 12 );
+    #elif  VVC_GD32V
+      GPIOA->ODR ^=  ( ( 0x1 << 1 ) | ( 0x1 << 2 ) );
+    #endif
   }
 
   return 0; // lol
