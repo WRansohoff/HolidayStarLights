@@ -1,6 +1,6 @@
 # Holiday Lighting With `WS2812B`s
 
-This is a simple 'ooh, pretty colors' project targeting the cheap-and-cheerful STM32F103C8 chip. It is still a work-in-progress, but the basic idea seems to work.
+This is a simple 'ooh, pretty colors' project targeting the cheap-and-cheerful STM32F103C8 chip. It also supports GD32VF103CB chips, which are new RISC-V microcontrollers used in boards such as Seeed Studio's "Longan Nano". Select your target hardware by un-commenting one of the lines at the top of the `Makefile` which defines the `MCU` variable.
 
 In a nutshell, the application drives a string of `WS2812B` 'NeoPixel' LEDs from the `SPI1` peripheral connected to pin `B5`.
 

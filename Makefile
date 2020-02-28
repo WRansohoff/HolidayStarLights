@@ -1,9 +1,9 @@
 TARGET = main
 
 # Default target chip.
-#MCU ?= STM32F103x8
+MCU ?= STM32F103x8
 #MCU ?= STM32F103xB
-MCU ?= GD32VF103xB
+#MCU ?= GD32VF103xB
 
 # Define target chip information.
 ifeq ($(MCU), STM32F103x8)
