@@ -17,6 +17,19 @@
 // Project includes.
 #include "patterns.h"
 
+// Platform-dependent values.
+#ifdef VVC_STM32
+  #define CFG_FLASH_LATENCY ( 0x1 << FLASH_ACR_LATENCY_Pos )
+  #define CFG_PLLMULL       ( RCC_CFGR_PLLMULL6 )
+  #define CFG_SYSCLK        ( 48000000 )
+  #define CFG_SPI_BR_PSC    ( 0x2 << SPI_CR1_BR_Pos )
+#elif  VVC_GD32V
+  #define CFG_FLASH_LATENCY ( 0x2 << FLASH_ACR_LATENCY_Pos )
+  #define CFG_PLLMULL       ( RCC_CFGR_PLLMULL12 )
+  #define CFG_SYSCLK        ( 96000000 )
+  #define CFG_SPI_BR_PSC    ( 0x3 << SPI_CR1_BR_Pos )
+#endif
+
 // Array of star structs.
 star_t stars[ NUM_STARS ];
 

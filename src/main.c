@@ -42,12 +42,8 @@ int main(void) {
    */
   // Set 1 wait state in flash and enable the prefetch buffer.
   FLASH->ACR &= ~(FLASH_ACR_LATENCY);
-  #ifdef VVC_STM32
-    FLASH->ACR |=  (0x1 << FLASH_ACR_LATENCY_Pos |
-                    FLASH_ACR_PRFTBE);
-  #elif  VVC_GD32V
-    FLASH->ACR |=  (0x2 << FLASH_ACR_LATENCY_Pos);
-  #endif
+  FLASH->ACR |=  (CFG_FLASH_LATENCY |
+                  FLASH_ACR_PRFTBE);
   // Enable the 8MHz external crystal oscillator.
   RCC->CR    |=  (RCC_CR_HSEON);
   while (!(RCC->CR & RCC_CR_HSERDY)) {};
@@ -56,11 +52,7 @@ int main(void) {
   RCC->CFGR  |=  (RCC_CFGR_SW_HSE);
   // Set the PLL multiplication factor.
   RCC->CFGR  &= ~(RCC_CFGR_PLLMULL);
-  #ifdef VVC_STM32
-    RCC->CFGR  |=  (RCC_CFGR_PLLMULL6);
-  #elif  VVC_GD32V
-    RCC->CFGR  |=  (RCC_CFGR_PLLMULL12);
-  #endif
+  RCC->CFGR  |=  (CFG_PLLMULL);
   // Set the PLL to use the HSE oscillator.
   RCC->CFGR  |=  (RCC_CFGR_PLLSRC);
   // Enable the PLL.
@@ -70,11 +62,7 @@ int main(void) {
   RCC->CFGR  &= ~(RCC_CFGR_SW);
   RCC->CFGR  |=  (RCC_CFGR_SW_PLL);
   // The system clock is now 48MHz or 96MHz.
-  #ifdef VVC_STM32
-    SystemCoreClock = 48000000;
-  #elif  VVC_GD32V
-    SystemCoreClock = 96000000;
-  #endif
+  SystemCoreClock = CFG_SYSCLK;
 
   #ifdef VVC_STM32
     // Setup the SysTick peripheral to 1ms ticks.
@@ -191,11 +179,7 @@ int main(void) {
                    SPI_CR1_SSI |
                    SPI_CR1_MSTR |
                    SPI_CR1_SPE |
-                 #ifdef VVC_STM32
-                   0x2 << SPI_CR1_BR_Pos );
-                 #elif  VVC_GD32V
-                   0x3 << SPI_CR1_BR_Pos );
-                 #endif
+                   CFG_SPI_BR_PSC );
 
   // Send new colors and blink the on-board LED at an interval.
   while ( 1 ) {
