@@ -42,17 +42,25 @@ int main(void) {
    */
   // Set 1 wait state in flash and enable the prefetch buffer.
   FLASH->ACR &= ~(FLASH_ACR_LATENCY);
-  FLASH->ACR |=  (0x1 << FLASH_ACR_LATENCY_Pos |
-                  FLASH_ACR_PRFTBE);
+  #ifdef VVC_STM32
+    FLASH->ACR |=  (0x1 << FLASH_ACR_LATENCY_Pos |
+                    FLASH_ACR_PRFTBE);
+  #elif  VVC_GD32V
+    FLASH->ACR |=  (0x2 << FLASH_ACR_LATENCY_Pos);
+  #endif
   // Enable the 8MHz external crystal oscillator.
   RCC->CR    |=  (RCC_CR_HSEON);
   while (!(RCC->CR & RCC_CR_HSERDY)) {};
   // Set the HSE oscillator as the system clock source.
   RCC->CFGR  &= ~(RCC_CFGR_SW);
   RCC->CFGR  |=  (RCC_CFGR_SW_HSE);
-  // Set the PLL multiplication factor to 6, for 8*6=48MHz.
+  // Set the PLL multiplication factor.
   RCC->CFGR  &= ~(RCC_CFGR_PLLMULL);
-  RCC->CFGR  |=  (RCC_CFGR_PLLMULL6);
+  #ifdef VVC_STM32
+    RCC->CFGR  |=  (RCC_CFGR_PLLMULL6);
+  #elif  VVC_GD32V
+    RCC->CFGR  |=  (RCC_CFGR_PLLMULL12);
+  #endif
   // Set the PLL to use the HSE oscillator.
   RCC->CFGR  |=  (RCC_CFGR_PLLSRC);
   // Enable the PLL.
@@ -61,8 +69,12 @@ int main(void) {
   // Set the PLL as the system clock source.
   RCC->CFGR  &= ~(RCC_CFGR_SW);
   RCC->CFGR  |=  (RCC_CFGR_SW_PLL);
-  // The system clock is now 48MHz.
-  SystemCoreClock = 48000000;
+  // The system clock is now 48MHz or 96MHz.
+  #ifdef VVC_STM32
+    SystemCoreClock = 48000000;
+  #elif  VVC_GD32V
+    SystemCoreClock = 96000000;
+  #endif
 
   #ifdef VVC_STM32
     // Setup the SysTick peripheral to 1ms ticks.
@@ -171,7 +183,7 @@ int main(void) {
   // Enable the DMA channel.
   DMA1_Channel3->CCR  |= ( DMA_CCR_EN );
 
-  // SPI1 setup: host mode, /8 baud rate division, sw cs pin control,
+  // SPI1 setup: host mode, 6MHz baud rate, sw cs pin control,
   // TX DMA enabled, 8-bit frames, msb-first, enable the peripheral.
   // Some of those settings are the default state after a reset.
   SPI1->CR2  |=  ( SPI_CR2_TXDMAEN );
@@ -179,7 +191,11 @@ int main(void) {
                    SPI_CR1_SSI |
                    SPI_CR1_MSTR |
                    SPI_CR1_SPE |
+                 #ifdef VVC_STM32
                    0x2 << SPI_CR1_BR_Pos );
+                 #elif  VVC_GD32V
+                   0x3 << SPI_CR1_BR_Pos );
+                 #endif
 
   // Send new colors and blink the on-board LED at an interval.
   while ( 1 ) {
