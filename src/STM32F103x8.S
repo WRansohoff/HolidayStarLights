@@ -4,6 +4,7 @@
 .thumb
 
 .global vtable
+.global reset_handler
 .global default_interrupt_handler
 
 .type vtable, %object
